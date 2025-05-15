@@ -1,58 +1,47 @@
 # YouTube Transcript MCP Server
 
-A simple server that extracts and returns transcripts from YouTube videos.
+This is a Model Control Protocol (MCP) server that provides a tool to fetch transcripts from YouTube videos.
 
-## Setup
+## Features
 
-1. Install the required dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+- Extracts video ID from any valid YouTube URL
+- Returns plain-text transcripts (without timestamps)
+- Uses the `youtube-transcript-api` library
 
-2. Run the server:
-   ```
-   python main.py
-   ```
+## Installation
 
-The server will start on port 5000.
-
-## API Usage
-
-### Get Transcript
-
-**Endpoint:** `/transcript`
-**Method:** POST
-**Content-Type:** application/json
-
-**Request Body:**
-```json
-{
-  "url": "https://www.youtube.com/watch?v=VIDEO_ID"
-}
+```bash
+# Install dependencies
+pip install youtube-transcript-api "mcp[fastmcp]"
 ```
 
-**Response:**
-```json
-{
-  "video_id": "VIDEO_ID",
-  "transcript": "Full video transcript text..."
-}
+## Usage
+
+Run the server:
+
+```bash
+python main.py
 ```
 
-### Health Check
+The server exposes a single tool:
 
-**Endpoint:** `/health`
-**Method:** GET
+- `get_transcript`: Takes a YouTube URL and returns the video ID and transcript
 
-**Response:**
-```json
-{
-  "status": "ok"
-}
+## Example
+
+Using the MCP client:
+
+```python
+from mcp.client import Client
+
+client = Client(transport="stdio")
+response = client.call("get_transcript", {"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"})
+print(f"Video ID: {response['video_id']}")
+print(f"Transcript: {response['transcript'][:100]}...")  # First 100 chars
 ```
 
 ## Error Handling
 
-The API returns appropriate error messages with HTTP status codes when:
-- The YouTube URL is missing or invalid
-- The transcript cannot be retrieved 
+The server handles these error cases:
+- Invalid YouTube URLs
+- Videos without available transcripts

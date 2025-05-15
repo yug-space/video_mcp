@@ -1,26 +1,23 @@
 """
-youtube_transcript_server.py
-An MCP server that exposes one tool: `get_transcript`.
-Given any valid YouTube URL it returns the video_id and a
-plain-text transcript (no timestamps) using youtube-transcript-api.
+Main entry point for the podcast-mcp application.
+A simple MCP server example.
 """
 
 import re
+import sys
 from typing import TypedDict
 
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
 from mcp.server.fastmcp import FastMCP
 
-# ----------------------------------------------------------------------
-# Initialise the MCP server ----------------------------------------------------
+# Initialize the MCP server
 mcp = FastMCP(
     name="YouTube Transcript Server",
     description="Fetches plain-text transcripts for public YouTube videos"
 )
 
-# ----------------------------------------------------------------------
-# Helper – identical to your Flask version -------------------------------------
+# YouTube URL regex pattern
 YOUTUBE_REGEX = re.compile(
     r"(https?://)?(www\.)?"
     r"(youtube|youtu|youtube-nocookie)\.(com|be)/"
@@ -34,19 +31,12 @@ def extract_video_id(url: str) -> str | None:
     return match.group("id") if match else None
 
 
-# ----------------------------------------------------------------------
-# The actual MCP tool ----------------------------------------------------
 class TranscriptRequest(TypedDict):
     url: str
 
 
-class TranscriptResponse(TypedDict):
-    video_id: str
-    transcript: str
-
-
 @mcp.tool()
-def get_transcript(data: TranscriptRequest) -> TranscriptResponse:  # noqa: D401
+def get_transcript(url: str):
     """Return the transcript of a YouTube video.
 
     Parameters
@@ -68,20 +58,26 @@ def get_transcript(data: TranscriptRequest) -> TranscriptResponse:  # noqa: D401
     youtube_transcript_api.YouTubeTranscriptApiError
         If the video has no available transcript.
     """
-    url = data["url"]
+    if not url:
+        raise ValueError("URL is required")
+    
     video_id = extract_video_id(url)
     if not video_id:
         raise ValueError("Invalid YouTube URL")
 
-    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-    formatter = TextFormatter()
-    formatted_text = formatter.format_transcript(transcript_list)
+    try:
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        formatter = TextFormatter()
+        transcript_text = formatter.format_transcript(transcript_list)
+        
+        return {
+            "video_id": video_id,
+            "transcript": transcript_text[:1000]  # Return first 1000 chars as preview
+        }
+    except Exception as e:
+        raise ValueError(f"Failed to get transcript: {str(e)}")
 
-    return {"video_id": video_id, "transcript": formatted_text}
 
-
-# ----------------------------------------------------------------------
-# Kick everything off ----------------------------------------------------
 if __name__ == "__main__":
-    # Default port is 7000; set MCP_PORT to override.
-    mcp.run()
+    print("🔧 Starting YouTube Transcript MCP server...", file=sys.stderr)
+    mcp.run(transport="stdio")
