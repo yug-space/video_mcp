@@ -65,17 +65,15 @@ def get_transcript(url: str):
     if not video_id:
         raise ValueError("Invalid YouTube URL")
 
-    try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-        formatter = TextFormatter()
-        transcript_text = formatter.format_transcript(transcript_list)
-        
-        return {
-            "video_id": video_id,
-            "transcript": transcript_text[:1000]  # Return first 1000 chars as preview
-        }
-    except Exception as e:
-        raise ValueError(f"Failed to get transcript: {str(e)}")
+    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+    transcript_text = ""
+    for item in transcript_list:
+        transcript_text += item["text"] + " "
+
+    return {
+        "video_id": video_id,
+        "transcript": transcript_text
+    }
 
 
 if __name__ == "__main__":
